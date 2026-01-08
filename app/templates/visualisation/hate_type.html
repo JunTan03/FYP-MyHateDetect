@@ -1,0 +1,123 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+  {% if months %}
+    <div class="container py-4">
+      <h2 class="text-center fw-bold mb-4 text-primary">Hate‐Type Breakdown
+        {% if "All" in selected_months or months|length == selected_months|length %}
+          (All)
+        {% else %}
+          ({{ selected_months | join(", ") }})
+        {% endif %}
+      </h2>
+
+      <!-- Month Filter Form -->
+      <form method="POST" id="monthForm" class="mb-4">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <label for="monthPicker" class="form-label">Select Month:</label>
+            <input type="text" id="monthPicker" name="month" class="form-control" placeholder="Choose a month" readonly />
+          </div>
+          <div class="col-md-3 d-flex align-items-center">
+            <button type="button" class="btn btn-outline-secondary mt-4" onclick="selectAllMonths()">Show All</button>
+            <input type="hidden" id="allMonthsField" name="months" value="">
+          </div>
+        </div>
+      </form>
+
+      {% if type_bar_html %}
+        <!-- Top Type Summary -->
+        <div class="card mt-4">
+          <div class="card-header bg-primary text-white fw-bold">
+            Most Frequent Hate Type:
+          </div>
+          <div class="card-body">
+            {{ summary_table[0].type|capitalize }}
+          </div>
+        </div></br>
+
+        <!-- Colored Bar Chart -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-body">
+            {{ type_bar_html|safe }}
+          </div>
+        </div>
+
+        <!-- Hate-Type Frequency Table -->
+        <div class="card shadow-sm">
+          <div class="card-header text-center fw-semibold">
+            Hate‐Type Summary Table
+          </div>
+          <div class="card-body px-4">
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped text-center align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Hate Type</th>
+                    <th>Count</th>
+                    <th>% of Total Hate Tweets</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% set total = summary_table | sum(attribute='count') %}
+                  {% for row in summary_table %}
+                    <tr>
+                      <td>{{ row.type|capitalize }}</td>
+                      <td>{{ row.count }}</td>
+                      <td>{{ '%.1f'|format((row.count / total * 100)) }}%</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+                <!-- ────── Top Keywords per Hate Type ───────────────────────── -->
+        <div class="card shadow-sm mt-4">
+          <div class="card-header fw-semibold text-center bg-light">Top Keywords by Hate Type</div>
+          <div class="card-body px-4">
+            <div class="row">
+              {% for type, keywords in type_keywords.items() %}
+                <div class="col-md-4 mb-3">
+                  <h6 class="fw-bold text-primary">{{ type|capitalize }}</h6>
+                  <ul class="list-group list-group-flush small">
+                    {% for kw in keywords %}
+                      <li class="list-group-item">{{ kw }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- ────── Tweet Examples per Hate Type ─────────────────────── -->
+        <div class="card shadow-sm mt-4">
+          <div class="card-header fw-semibold text-center bg-light">Example Tweets per Hate Type</div>
+          <div class="card-body px-4">
+            <div class="row">
+              {% for type, examples in type_examples.items() %}
+                <div class="col-md-6 mb-3">
+                  <h6 class="fw-bold text-danger">{{ type|capitalize }}</h6>
+                  <ul class="list-group list-group-flush small">
+                    {% for tweet in examples %}
+                      <li class="list-group-item">{{ tweet }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-info text-center mt-4">
+          No hate‐speech data found for the selected month(s).
+        </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center mt-4">
+      No tweet data available. Please upload tweets first.
+    </div>
+  {% endif %}
+{% endblock %}

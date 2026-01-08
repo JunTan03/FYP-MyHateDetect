@@ -1,0 +1,100 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+  {% if no_data %}
+    <div class="alert alert-info text-center mt-4">
+      No data available to display. Please upload tweets first.
+    </div>
+  {% else %}
+    <div class="container py-4">
+      <h2 class="text-center fw-bold mb-4 text-primary">Trend Analysis</h2>
+
+      <!-- ─── Summary Insights ─────────────────────────────────────────────── -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm bg-primary text-white text-center">
+            <div class="card-body">
+              <h6 class="fw-semibold">Total Hate Tweets</h6>
+              <h3 class="fw-bold">{{ trend_summary.total_hate }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm bg-success text-white text-center">
+            <div class="card-body">
+              <h6 class="fw-semibold">Total Non-Hate Tweets</h6>
+              <h3 class="fw-bold">{{ trend_summary.total_nonhate }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm bg-warning text-dark text-center">
+            <div class="card-body">
+              <h6 class="fw-semibold">Most Volatile Type</h6>
+              <h4 class="fw-bold">{{ trend_summary.most_volatile }}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm bg-secondary text-white text-center">
+            <div class="card-body">
+              <h6 class="fw-semibold">Most Stable Type</h6>
+              <h4 class="fw-bold">{{ trend_summary.most_stable }}</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Spike Month Summary ───────────────────────────────────────────── -->
+      {% if trend_summary.spike_months %}
+        <div class="card shadow-sm mb-5">
+          <div class="card-header fw-semibold text-center">
+            Hate-Type Spike Months (≥ 3 Tweets)
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-bordered text-center align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Hate Type</th>
+                    <th>Spike Month</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for type, month in trend_summary.spike_months.items() %}
+                    <tr>
+                      <td>{{ type|capitalize }}</td>
+                      <td>{{ month }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- ─── Hate vs. Non-Hate Trend Chart ─────────────────────────────────── -->
+      <div class="row mb-5">
+        <div class="col">
+          {{ hate_line_html|safe }}
+        </div>
+      </div>
+
+      <!-- ─── Hate-Type Trend Chart ─────────────────────────────────────────── -->
+      <div class="row mb-5">
+        <div class="col">
+          {{ type_trend_html|safe }}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col text-center">
+          <p class="text-muted">
+            Hover over each point for details. Use volatility and spikes to guide timely interventions.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}

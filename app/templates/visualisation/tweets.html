@@ -1,0 +1,201 @@
+{# templates/visualisation/tweets.html #}
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="text-center fw-bold mb-4 text-primary">All Tweets
+    {% if "All" in selected_months or months|length == selected_months|length %}
+      (All)
+    {% else %}
+      ({{ selected_months | join(", ") }})
+    {% endif %}
+  </h2>
+
+  <!-- ───── Month Filter Form ─────────────────────────────────────────── -->
+  <form method="POST" id="monthForm" class="mb-4">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label for="monthPicker" class="form-label">Select Month:</label>
+        <input type="text" id="monthPicker" name="month" class="form-control" placeholder="Choose a month" readonly />
+      </div>
+      <div class="col-md-3 d-flex align-items-center">
+        <button type="button" class="btn btn-outline-secondary mt-4" onclick="selectAllMonths()">Show All</button>
+        <input type="hidden" id="allMonthsField" name="months" value="">
+      </div>
+    </div>
+  </form>
+
+  {% if tweet_rows %}
+    <!-- ───── Summary Cards ────────────────────────────────────────────── -->
+    <div class="row mb-4 g-3">
+      <div class="col-md-3">
+        <div class="card shadow-sm bg-secondary text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="fw-semibold">Total Tweets</h6>
+            <h2 class="fw-bold">{{ summary.total }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm bg-danger text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="fw-semibold">Hate Tweets</h6>
+            <h2 class="fw-bold">{{ summary.hate }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm bg-success text-white h-100">
+          <div class="card-body text-center">
+            <h6 class="fw-semibold">Non-Hate Tweets</h6>
+            <h2 class="fw-bold">{{ summary.non_hate }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card shadow-sm bg-warning text-dark h-100">
+          <div class="card-body text-center">
+            <h6 class="fw-semibold">Top Hate Type</h6>
+            <h5 class="mb-0">{{ summary.top_type }}
+              <span class="badge bg-light text-dark">{{ summary.top_count }}</span>
+            </h5>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───── Data Table ─────────────────────────────────────────────────── -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <table id="tweets-table" class="table table-striped table-bordered w-100 align-middle">
+          <thead class="table-dark align-middle">
+            <!-- Row 1: Column Titles -->
+            <tr>
+              <th class="text-center">Month</th>
+              <th class="text-center">Flag</th>
+              <th class="text-center">Hate Types</th>
+              <th class="text-center">Tweet Text</th>
+            </tr>
+            <!-- Row 2: Dropdown Filters -->
+            <tr>
+              <th class="text-center">
+                <select id="month-filter" class="form-select form-select-sm">
+                  <option value="">All</option>
+                </select>
+              </th>
+              <th class="text-center">
+                <select id="flag-filter" class="form-select form-select-sm">
+                  <option value="">All</option>
+                  <option value="Hate">Hate</option>
+                  <option value="Non-Hate">Non-Hate</option>
+                </select>
+              </th>
+              <th class="text-center">
+                <select id="type-filter" class="form-select form-select-sm">
+                  <option value="">All</option>
+                  {# We used to iterate over hate_types_list here, but that caused duplicates.
+                     Instead, JavaScript will populate this <select> in initComplete. #}
+                </select>
+              </th>
+              <th class="text-center"><!-- No filter for Tweet Text --></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in tweet_rows %}
+              <tr>
+                <td class="text-center">{{ r.month }}</td>
+                <td class="text-center">
+                  {% if r.hate == "hate" %}
+                    <span class="badge bg-danger">Hate</span>
+                  {% else %}
+                    <span class="badge bg-success">Non-Hate</span>
+                  {% endif %}
+                </td>
+                <td class="text-center">{{ r.hate_types or "<em>—</em>"|safe }}</td>
+                <td>{{ r.tweet }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center mt-4">
+      No tweets found for the selected month(s).
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+
+{% block extra_scripts %}
+  <!-- Make sure you have included DataTables CSS in base.html’s <head>! -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      // Initialize the DataTable
+      var table = $("#tweets-table").DataTable({
+        pageLength: 10,
+        lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+        order: [[3, "desc"]], // sort by Tweet Text descending (column index 3)
+        dom: "lfrtip",
+        columnDefs: [
+          { targets: [0, 1, 2], orderable: false } // disable sorting for Month/Flag/Hate Types
+        ],
+        initComplete: function() {
+          const api = this.api();
+
+          // ────── 1) Populate Month Filter ─────────────────────────────────
+          let monthSet = new Set();
+          api.column(0).data().each(function(value) {
+            // `value` is the cell’s inner HTML/text, e.g. “2025-09”
+            let text = $("<div>").html(value).text().trim();
+            if (text && !monthSet.has(text)) {
+              monthSet.add(text);
+              $("#month-filter").append(`<option value="${text}">${text}</option>`);
+            }
+          });
+
+          // When Month changes, re‐draw table
+          $("#month-filter").on("change", function() {
+            let v = $.fn.dataTable.util.escapeRegex($(this).val());
+            api.column(0).search(v ? "^" + v + "$" : "", true, false).draw();
+          });
+
+          // ────── 2) Flag Filter (hard-coded options) ───────────────────────
+          $("#flag-filter").on("change", function() {
+            let v = $.fn.dataTable.util.escapeRegex($(this).val());
+            api.column(1).search(v ? "^" + v + "$" : "", true, false).draw();
+          });
+
+          // ────── 3) Populate Hate-Types Filter (no duplicates, no “—”) ─────
+          let typeSet = new Set();
+          api.column(2).data().each(function(cellValue) {
+            // cellValue might be "", or something like "race,gender,religion"
+            let raw = $("<div>").html(cellValue).text().trim();
+            if (!raw || raw === "—") {
+              return; // skip empty or placeholder
+            }
+            raw.split(",").forEach(function(part) {
+              let label = part.trim();
+              if (label && !typeSet.has(label)) {
+                typeSet.add(label);
+                // Capitalize first letter for display
+                let display = label.charAt(0).toUpperCase() + label.slice(1);
+                $("#type-filter").append(`<option value="${label}">${display}</option>`);
+              }
+            });
+          });
+
+          // When Hate Types changes, re‐draw table
+          $("#type-filter").on("change", function() {
+            let v = $(this).val();
+            api.column(2).search(v ? v : "", true, false).draw();
+          });
+        }
+      });
+    });
+  </script>
+{% endblock %}

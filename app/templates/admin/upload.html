@@ -1,0 +1,84 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center fw-bold mb-4 text-primary">Upload Tweets CSV</h2>
+
+  <form method="POST" action="{{ url_for('admin.upload_file') }}" enctype="multipart/form-data" id="uploadForm">
+    <div class="card shadow-sm p-4 mx-auto mt-4 bg-light border" style="max-width: 600px;">
+      <div class="mb-3">
+        <label for="monthPicker" class="form-label fw-semibold">Select Month:</label>
+        <input type="text" id="monthPicker" name="month" class="form-control" placeholder="Choose a month" readonly required data-upload />
+      </div>
+      <div class="mb-3">
+        <label for="file" class="form-label fw-semibold">CSV File</label>
+        <input type="file" id="file" name="file" class="form-control" accept=".csv" required>
+        <small class="text-muted">Format: text or tweet</small>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload and Process</button>
+    </div>
+  </form>
+</div>
+
+<!-- Uploading Spinner Overlay -->
+<div id="spinner-overlay" style="display:none; position:fixed; z-index:9999; top:0; left:0; width:100%; height:100%; background-color:rgba(255,255,255,0.8); text-align:center;">
+  <div class="spinner-border text-primary" role="status" style="margin-top:20%;">
+    <span class="visually-hidden">Uploading...</span>
+  </div>
+  <h4 class="mt-3">Uploading and Processing Tweets...</h4>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+async function checkIfUploadRunning() {
+  const res = await fetch("/upload_progress");
+  const data = await res.json();
+  return data.progress < 100;
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("uploadForm");
+  const spinner = document.getElementById("spinner-overlay");
+  const existingMonths = {{ existing_months | tojson }};
+  const monthInput = document.getElementById("monthPicker");
+
+  // Init Flatpickr
+  flatpickr("#monthPicker", {
+    plugins: [new monthSelectPlugin({
+      shorthand: true,
+      dateFormat: "Y-m",
+      altFormat: "F Y"
+    })],
+    disableMobile: true,
+    allowInput: false
+  });
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();  // Block default form submit first
+
+    const selectedMonth = monthInput.value;
+
+    // Step 1: Confirm overwrite if month already exists
+    if (existingMonths.includes(selectedMonth)) {
+      const confirmOverwrite = confirm(
+        `${selectedMonth} already has data uploaded.\nDo you want to proceed and potentially duplicate or replace it?`
+      );
+      if (!confirmOverwrite) return;
+    }
+
+    // Step 2: Prevent if already uploading
+    const isRunning = await checkIfUploadRunning();
+    if (isRunning) {
+      alert("⚠️ A tweet upload is already in progress. Please wait for it to complete before uploading again.");
+      return;
+    }
+
+    // Step 3: Continue to submit
+    sessionStorage.setItem("upload_in_progress", "true");
+    if (spinner) spinner.style.display = "block";
+    form.submit();  // Now do real submission
+  });
+});
+</script>
+{% endblock %}

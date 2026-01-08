@@ -1,0 +1,144 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="text-center fw-bold mb-4 text-primary">Compare Hate Metrics by Month</h2>
+
+  <!-- Month Comparison Form -->
+  <form method="POST" id="compare-form" class="mb-4">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label for="month1Picker" class="form-label fw-semibold">Select First Month:</label>
+        <input type="text" class="form-control" id="month1Picker" name="month1" value="{{ month1 or '' }}" placeholder="Select Month 1" readonly>
+      </div>
+      <div class="col-md-6">
+        <label for="month2Picker" class="form-label fw-semibold">Select Second Month:</label>
+        <input type="text" class="form-control" id="month2Picker" name="month2" value="{{ month2 or '' }}" placeholder="Select Month 2" readonly>
+      </div>
+      <div class="col-12 d-flex justify-content-center mt-3">
+        <button type="submit" class="btn btn-primary px-4">Compare</button>
+      </div>
+    </div>
+  </form>
+
+  {% if show_comparison %}
+  <!-- Rate boxes shown only after POST -->
+  <div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+      <div class="border rounded p-3 bg-light text-center">
+        <h6 class="fw-bold text-primary">Hate Rate Comparison</h6>
+        <p class="mb-1">{{ month1 }}: <strong>{{ rates[month1_key].hate_rate }}%</strong></p>
+        <p class="mb-1">{{ month2 }}: <strong>{{ rates[month2_key].hate_rate }}%</strong></p>
+        <p class="text-info small">Change: <strong>{{ "+" if hate_rate_diff > 0 else "" }}{{ hate_rate_diff }}%</strong></p>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="border rounded p-3 bg-light text-center">
+        <h6 class="fw-bold text-success">Non-Hate Rate Comparison</h6>
+        <p class="mb-1">{{ month1 }}: <strong>{{ rates[month1_key].non_hate_rate }}%</strong></p>
+        <p class="mb-1">{{ month2 }}: <strong>{{ rates[month2_key].non_hate_rate }}%</strong></p>
+        <p class="text-info small">Change: <strong>{{ "+" if non_hate_rate_diff > 0 else "" }}{{ non_hate_rate_diff }}%</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hate vs Non-Hate Chart -->
+  <h4 class="mt-4 fw-bold text-center text-secondary">Hate vs. Non-Hate Comparison</h4>
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      {{ hate_bar_chart|safe }}
+    </div>
+  </div>
+
+  <!-- Hate Type Breakdown Chart -->
+  <h4 class="mt-4 fw-bold text-center text-secondary">Hate Type Breakdown Comparison</h4>
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      {{ hate_type_chart|safe }}
+    </div>
+  </div>
+
+  <!-- Hate Type % Table -->
+  <h4 class="mt-5 fw-bold text-center text-secondary">Hate Type Comparison Table</h4>
+  <div class="card">
+    <div class="card-body px-4">
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle small">
+          <thead class="table-light">
+            <tr>
+              <th>Hate Type</th>
+              <th>{{ month1 }}</th>
+              <th>{{ month1 }} (%)</th>
+              <th>{{ month2 }}</th>
+              <th>{{ month2 }} (%)</th>
+              <th>Change</th>
+              <th>Change (%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in type_pct_table %}
+            <tr>
+              <td>{{ row.type|capitalize }}</td>
+              <td>{{ row.month1_count }}</td>
+              <td>{{ row.month1_pct }}%</td>
+              <td>{{ row.month2_count }}</td>
+              <td>{{ row.month2_pct }}%</td>
+              <td>
+                {% set change = row.month2_count - row.month1_count %}
+                {{ "+" if change > 0 else "" }}{{ change }}
+              </td>
+              <td>
+                {% if row.month1_count > 0 %}
+                  {% set change_pct = ((row.month2_count - row.month1_count) / row.month1_count * 100) | round(1) %}
+                  {{ "+" if change_pct > 0 else "" }}{{ change_pct }}%
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border bg-light mt-4">
+    <div class="card-body text-center">
+      <h5 class="card-title text-secondary fw-bold">Month-to-Month Hate Comparison</h5>
+      <p class="mb-2 fw-semibold">
+        Hate tweets changed by: 
+        <span class="text-danger"><strong>{{ hate_diff }}</strong></span> 
+        (<span class="text-danger">{{ hate_pct }}%</span>) from 
+        <strong>{{ month1 }}</strong> to <strong>{{ month2 }}</strong>.
+      </p>
+      <p class="fw-semibold mb-0 fs-6">
+        Hate type with the highest increase:
+        <span class="text-primary">
+          {{ top_increase if top_increase else "No clear increase observed" }}
+        </span>
+      </p>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const validMonths = {{ months | tojson }};
+  flatpickr("#month1Picker", {
+    plugins: [new monthSelectPlugin({ shorthand: true, dateFormat: "F Y", altFormat: "F Y" })],
+    enable: validMonths,
+    disableMobile: true,
+    allowInput: false
+  });
+  flatpickr("#month2Picker", {
+    plugins: [new monthSelectPlugin({ shorthand: true, dateFormat: "F Y", altFormat: "F Y" })],
+    enable: validMonths,
+    disableMobile: true,
+    allowInput: false
+  });
+</script>
+{% endblock %}

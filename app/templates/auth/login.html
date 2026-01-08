@@ -1,0 +1,64 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh; background: linear-gradient(135deg, #f5f7fa, #c3cfe2);">
+    <div class="card login-card p-5" style="max-width: 450px; border-radius: 15px; box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.1); background-color: #ffffff;">
+    <div class="text-center mb-4">
+      <img src="{{ url_for('static', filename='logo.png') }}"
+          alt="MyHateDetect"
+          style="height: 200px;"
+          onerror="this.outerHTML='<h3 class=\'brand-title text-primary\'>MyHateDetect</h3>';">
+      <p class="subtitle text-muted mt-2">Policymaker & Admin Access Portal</p>
+    </div>
+
+      <!-- Login Form -->
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="mb-3">
+          <label for="email" class="form-label">Email Address</label>
+          <input type="email" id="email" name="email" class="form-control" placeholder="you@example.com" required />
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="Enter password" required />
+        </div>
+
+        <div class="mb-3">
+          <label for="role" class="form-label">Login As</label>
+          <select id="role" name="role" class="form-select" required>
+            <option value="">Select role</option>
+            <option value="admin">Admin</option>
+            <option value="policymaker">Policymaker</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+      </form>
+
+      <div class="text-center mt-4">
+        <small class="text-muted">© 2025 MyHateDetect. All rights reserved.</small>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .login-card {
+      background-color: #fff;
+      border-radius: 12px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .brand-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #0d6efd;
+    }
+    .subtitle {
+      font-size: 1.25rem;
+      color: #6c757d;
+    }
+    .alert {
+      margin-top: 1rem;
+    }
+  </style>
+
+{% endblock %}

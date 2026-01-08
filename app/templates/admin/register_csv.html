@@ -1,0 +1,42 @@
+{% extends "visualisation/base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h3 class="mb-4 text-primary fw-bold">Register Users (CSV)</h3>
+
+  <form method="POST" enctype="multipart/form-data" class="mb-5 border p-4 rounded shadow-sm bg-light">
+    <div class="mb-3">
+      <label for="csv_file" class="form-label fw-semibold">Upload CSV file</label>
+      <input type="file" class="form-control" name="csv_file" accept=".csv" required>
+      {% if session.get("is_main_admin") %}
+      <small class="text-muted">Format: email, role (1 = admin, 2 = policymaker)</small>
+      {% endif %}
+      <small class="text-muted">You can only register for policymaker. Format: email, role (2 = policymaker)</small>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload and Register</button>
+  </form>
+
+  {% if created %}
+    <h5 class="text-success">✅ Created Users</h5>
+    <table class="table table-bordered table-sm">
+      <thead><tr><th>Email</th><th>Role</th><th>Temp Password</th></tr></thead>
+      <tbody>
+        {% for email, role, pw in created %}
+          <tr><td>{{ email }}</td><td>{{ role }}</td><td><code>{{ pw }}</code></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if skipped %}
+    <h5 class="text-danger mt-4">⚠️ Skipped Users</h5>
+    <table class="table table-warning table-sm">
+      <thead><tr><th>Email</th><th>Reason</th></tr></thead>
+      <tbody>
+        {% for email, reason in skipped %}
+          <tr><td>{{ email }}</td><td>{{ reason }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}

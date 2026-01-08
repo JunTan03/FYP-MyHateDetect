@@ -1,0 +1,183 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+  {% if months %}
+    <div class="container py-4">
+      <h2 class="text-center fw-bold mb-4 text-primary">Dashboard Overview
+      {% if "All" in selected_months or months|length == selected_months|length %}
+        (All)
+      {% else %}
+        ({{ selected_months | join(", ") }})
+      {% endif %}
+      </h2>
+
+      <!-- ────── 0) Month‐Selector Form ─────────────────────────────────────────── -->
+      <form method="POST" id="monthForm" class="mb-4">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-6">
+            <label for="monthPicker" class="form-label">Select Month:</label>
+            <input type="text" id="monthPicker" name="month" class="form-control" placeholder="Choose a month" readonly />
+          </div>
+          <div class="col-md-3 d-flex align-items-center">
+            <button type="button" class="btn btn-outline-secondary mt-4" onclick="selectAllMonths()">Show All</button>
+            <input type="hidden" id="allMonthsField" name="months" value="">
+          </div>
+        </div>
+      </form>
+
+      <!-- ────── 1) Dashboard Insight Cards ───────────────────────────────────── -->
+      <div class="row text-center mb-4">
+        <div class="col-md-2">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted">Total Tweets</h6>
+              <h4 class="text-dark fw-bold">{{ total_tweets }}</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted">Hate %</h6>
+              <h4 class="text-danger fw-bold">{{ hate_rate }}%</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted">Non-Hate %</h6>
+              <h4 class="text-success fw-bold">{{ non_hate_rate }}%</h4>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted">Top Hate Type</h6>
+              <h5 class="text-primary fw-bold">{{ top_type }}</h5>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h6 class="text-muted">Peak Hate Month</h6>
+              <h5 class="text-warning fw-bold">{{ month_max_hate }}</h5>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ────── 2) Policy Brief Card ─────────────────────────────────────────── -->
+      <div class="card mt-4">
+        <div class="card-header bg-primary text-white fw-bold">
+          Monthly Policy Brief
+        </div>
+        <div class="card-body">
+          {{ policy_brief|safe }}
+        </div>
+      </div>
+
+      <!-- ────── 3) Stacked Bar: Hate vs Non-Hate ─────────────────────────────── -->
+      <div class="row mb-5">
+        <div class="col">
+          <div id="stacked-bar-chart"></div>
+        </div>
+      </div>
+
+      <script>
+        var monthsArr = {{ selected_months | default([]) | tojson }};
+        var nonHateArr = {{ non_hate_counts | default([]) | tojson }};
+        var hateArr = {{ hate_counts | default([]) | tojson }};
+
+        var trace1 = {
+          x: monthsArr,
+          y: nonHateArr,
+          name: 'Non-Hate Speech',
+          type: '{{ chart_type }}',
+          marker: { color: 'green' },
+          text: nonHateArr.map((val, index) => 'Non-Hate: ' + val + ' tweets'),
+          hoverinfo: 'text'
+        };
+        var trace2 = {
+          x: monthsArr,
+          y: hateArr,
+          name: 'Hate Speech',
+          type: '{{ chart_type }}',
+          marker: { color: 'red' },
+          text: hateArr.map((val, index) => 'Hate: ' + val + ' tweets'),
+          hoverinfo: 'text'
+        };
+        var layout = {
+          barmode: 'stack',
+          title: 'Hate Speech vs. Non-Hate Speech Tweets by Month',
+          xaxis: { title: 'Month' },
+          yaxis: { title: 'Tweet Count' },
+          hovermode: 'closest'
+        };
+
+        Plotly.newPlot('stacked-bar-chart', [trace1, trace2], layout);
+      </script>
+
+      <!-- ────── 5) Summary Table of Hate Types ──────────────────────────────── -->
+      {% if summary_table %}
+        <div class="row mb-4">
+          <div class="col-md-6 offset-md-3">
+            <h5 class="text-center">Summary: Top Hate Types</h5>
+            <table class="table table-sm table-striped">
+              <thead>
+                <tr>
+                  <th>Hate Type</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in summary_table %}
+                  <tr>
+                    <td>{{ row.type|capitalize }}</td>
+                    <td>{{ row.count }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- ────── 6) Word Clouds ───────────────────────────────────────────────── -->
+      <div class="row mb-5">
+        <div class="col-md-6 text-center">
+          <h5>Most Frequent Non-Hate Tweet Terms</h5>
+          {% if wordclouds.non_hate %}
+            <img src="data:image/png;base64,{{ wordclouds.non_hate }}" class="img-fluid border" />
+          {% else %}
+            <p><em>No non-hate tweets to generate word cloud.</em></p>
+          {% endif %}
+        </div>
+        <div class="col-md-6 text-center">
+          <h5>Most Frequent Hate Tweet Terms</h5>
+          {% if wordclouds.hate %}
+            <img src="data:image/png;base64,{{ wordclouds.hate }}" class="img-fluid border" />
+          {% else %}
+            <p><em>No hate tweets to generate word cloud.</em></p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center mt-4">
+      No data available to display. Please upload tweets first.
+    </div>
+  {% endif %}
+{% endblock %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    document.getElementById("stacked-bar-chart").style.visibility = "visible";
+  });
+</script>
+
+<style>
+  #stacked-bar-chart { visibility: hidden; }
+</style>

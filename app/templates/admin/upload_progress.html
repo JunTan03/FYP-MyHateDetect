@@ -1,0 +1,37 @@
+{% extends "visualisation/base.html" %}
+
+{% block content %}
+  <div class="container py-5 text-center">
+    <h2>Uploading and Processing Tweets...</h2>
+    <div class="progress mt-4" style="height: 30px;">
+      <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div>
+    </div>
+    <p id="status-text" class="mt-3 text-muted">Initializing...</p>
+  </div>
+
+  <script>
+    function pollProgress() {
+      fetch("/upload_progress")
+        .then(response => response.json())
+        .then(data => {
+          const bar = document.getElementById("progress-bar");
+          const text = document.getElementById("status-text");
+          bar.style.width = data.percent + "%";
+          bar.textContent = data.percent + "%";
+          text.textContent = data.status;
+
+          if (data.percent < 100) {
+            setTimeout(pollProgress, 1000);
+          } else {
+            // After completion, redirect back to upload page
+            setTimeout(() => window.location.href = "{{ url_for('admin.upload_file') }}", 1500);
+          }
+        })
+        .catch(err => {
+          console.error('Progress polling error:', err);
+        });
+    }
+    // Kick off the first poll
+    pollProgress();
+  </script>
+{% endblock %}
