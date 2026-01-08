@@ -7,7 +7,7 @@ MyHateDetect is a dual-stage classification platform for detecting and categoris
 
 The binary classification model (Stage 1) and the underlying dataset used in this project have been formally published:
 
-* **Research Paper:** [A bilingual Malay-English social media dataset for binary hate speech detection](https://doi.org/10.1016/j.dib.2025.111456) (Published in *Data in Brief, ScienceDirect*).
+* **Research Paper:** [A bilingual Malay-English social media dataset for binary hate speech detection](https://doi.org/10.1016/j.dib.2025.112153) (Published in *Data in Brief, ScienceDirect*).
 * **Official Dataset:** [A Bilingual Malay-English Social Media Dataset for Binary Hate Speech Detection](https://data.mendeley.com/datasets/mgv2n2vcb9/3) (Hosted on *Mendeley Data*).
 
 ## System Architecture
