@@ -5,9 +5,9 @@ MyHateDetect is a dual-stage classification platform for detecting and categoris
 
 ## System Architecture
 
-**Stage 1: binary classification (hate vs non-hate):** Binary classification to determine if a tweet contains hate speech. 
+**Stage 1: binary classification (hate vs non-hate):** to determine if a tweet contains hate speech. 
 
-**Stage 2: multilabel hate type classification:** Multi-label classification to identify the specific nature of the hate speech (Race, Religion, Gender, Sexual Orientation).
+**Stage 2: multilabel hate type classification:** to identify the specific nature of the hate speech (Race, Religion, Gender, Sexual Orientation).
 
 ## Research & Performance
 
