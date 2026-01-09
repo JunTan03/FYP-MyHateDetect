@@ -63,7 +63,7 @@ MyHateDetect/
 **1. Clone the Repository**
 ```bash
 git clone https://github.com/JunTan03/FYP-MyHateDetect.git
-cd MyHateDetect
+cd FYP-MyHateDetect
 ```
 **2. Install Dependencies**
 ```bash
