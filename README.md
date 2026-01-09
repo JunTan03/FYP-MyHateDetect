@@ -47,12 +47,13 @@ MyHateDetect/
 │   ├── stage_predict.py      # Final prediction script (stage 1 + 2)
 │   ├── text_utils.py         # Preprocessing & Auto-NLTK setup
 │   └── utils.py              # Progress bar, database functions
-├── sql query/
-│   └── myhatedetect.sql      # MySQL database dump
 ├── experiment/
 │   ├── stage1/               # Binary classification: Training notebooks, model weights & performance visuals
 │   ├── stage2/               # Multi-label classification: Training notebooks, model weights & visuals
-├── sample_uploads   # Sample dataset files for tweets upload and user registration use
+├── sample_uploads            # Sample dataset files for tweets upload and user registration use
+├── slangdict                 # Dictionary for normalising slang and toxic
+├── sql query/
+│   └── myhatedetect.sql      # MySQL database dump
 ├── requirements.txt          # Clean list of dependencies for website
 ├── run.py                    # Entry point for Flask app
 └── README.md                 # Project documentation and setup guide
@@ -65,15 +66,25 @@ MyHateDetect/
 git clone https://github.com/JunTan03/FYP-MyHateDetect.git
 cd FYP-MyHateDetect
 ```
+
 **2. Install Dependencies**
 ```bash
 pip install -r requirements.txt
 ```
+
 **3. Database Setup**
 * Ensure MySQL is running amd import the database dump
+
+* Run this command to create the database
 ```bash
-mysql -u root -p myhatedetect < sql query/myhatedetect.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS myhatedetect;"
 ```
+
+* Populate the database using the provided SQL dump
+```bash
+mysql -u root -p myhatedetect < "sql query/myhatedetect.sql"
+```
+
 **4. Run the Application**
 ```bash
 python run.py
