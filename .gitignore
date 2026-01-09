@@ -12,9 +12,10 @@ dist/
 */.ipynb_checkpoints/*
 
 # Model Weights (Remove these if you WANT to upload your models to GitHub)
-# *.safetensors
-# *.bin
-# *.h5
+*.safetensors
+*/.safetensors
+*.bin
+*.h5
 
 # OS specific
 .DS_Store

@@ -47,12 +47,13 @@ MyHateDetect/
 │   ├── stage_predict.py      # Final prediction script (stage 1 + 2)
 │   ├── text_utils.py         # Preprocessing & Auto-NLTK setup
 │   └── utils.py              # Progress bar, database functions
-├── sql query/
-│   └── myhatedetect.sql      # MySQL database dump
 ├── experiment/
 │   ├── stage1/               # Binary classification: Training notebooks, model weights & performance visuals
 │   ├── stage2/               # Multi-label classification: Training notebooks, model weights & visuals
-├── sample_uploads   # Sample dataset files for tweets upload and user registration use
+├── sample_uploads            # Sample dataset files for tweets upload and user registration use
+├── slangdict                 # Dictionary for normalising slang and toxic
+├── sql query/
+│   └── myhatedetect.sql      # MySQL database dump
 ├── requirements.txt          # Clean list of dependencies for website
 ├── run.py                    # Entry point for Flask app
 └── README.md                 # Project documentation and setup guide
@@ -65,15 +66,33 @@ MyHateDetect/
 git clone https://github.com/JunTan03/FYP-MyHateDetect.git
 cd FYP-MyHateDetect
 ```
+
 **2. Install Dependencies**
 ```bash
 pip install -r requirements.txt
 ```
+
+**3. Model Weights**
+Due to GitHub's file size limitations (100MB), the fine-tuned BERT models (`model.safetensors`) are not included in this repository. 
+
+To run the prediction pipeline locally:
+1. Download the model weights from [**https://drive.google.com/drive/folders/11DBAdZg2rDUveGkMJe-EDdC8tza94gKo?usp=drive_link**].
+2. Place the files into the following directory: 
+* `experiment/stage1/s1_mb_model/`
+* `experiment/stage2/s2_mb_model/`.
+3. Ensure `config.json` and `tokenizer_config.json` are also present in the same folder.
+
 **3. Database Setup**
-* Ensure MySQL is running amd import the database dump
+1. Ensure MySQL is running amd import the database dump
+2. Run this command to create the database
 ```bash
-mysql -u root -p myhatedetect < sql query/myhatedetect.sql
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS myhatedetect;"
 ```
+3. Populate the database using the provided SQL dump
+```bash
+mysql -u root -p myhatedetect < "sql query/myhatedetect.sql"
+```
+
 **4. Run the Application**
 ```bash
 python run.py
