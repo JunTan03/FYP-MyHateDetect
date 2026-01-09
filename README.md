@@ -72,6 +72,7 @@ cd FYP-MyHateDetect
 pip install -r requirements.txt
 ```
 
+<<<<<<< HEAD
 **3. Model Weights**
 Due to GitHub's file size limitations (100MB), the fine-tuned BERT models (`model.safetensors`) are not included in this repository. 
 
@@ -89,6 +90,17 @@ To run the prediction pipeline locally:
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS myhatedetect;"
 ```
 3. Populate the database using the provided SQL dump
+=======
+**3. Database Setup**
+* Ensure MySQL is running amd import the database dump
+
+* Run this command to create the database
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS myhatedetect;"
+```
+
+* Populate the database using the provided SQL dump
+>>>>>>> d8b64f8dc48e3037702599efd0c9b6476861e2e0
 ```bash
 mysql -u root -p myhatedetect < "sql query/myhatedetect.sql"
 ```
