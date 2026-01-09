@@ -16,9 +16,7 @@ from app.stage_predict import predict_toxic_and_hate_type
 import secrets
 import string
 
-
 admin_bp = Blueprint('admin', __name__)
-
 
 def run_in_context(app, func, *args, **kwargs):
     with app.app_context():
@@ -140,9 +138,18 @@ def background_task(filepath, month, filename):
             set_progress(100, "⚠️ No tweets processed.")
             return
 
+        # Combine all processed data and save as a unified CSV
         final_df = pd.concat(all_chunks, ignore_index=True)
-        os.makedirs("data", exist_ok=True)
-        final_df.to_csv("processed_data/tweets.csv", index=False, encoding="utf-8")
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder, exist_ok=True)
+            
+        output_filename = f"processed_{filename}"
+        output_path = os.path.join(upload_folder, output_filename)
+        
+        # Saving relevant analysis columns
+        final_df.to_csv(output_path, index=False, encoding="utf-8")
 
         cursor.close()
         conn.close()
@@ -152,9 +159,6 @@ def background_task(filepath, month, filename):
         print("❌ Upload error:", e)
         set_progress(100, "❌ Processing error.")
 
-# ────────────────────────────────────────────────────────────────────────────
-# Flask Routes
-# ────────────────────────────────────────────────────────────────────────────
 @admin_bp.route("/upload_progress")
 def upload_progress():
     return jsonify(get_progress())
@@ -170,7 +174,12 @@ def upload_file():
             return redirect(request.url)
 
         filename = secure_filename(file.filename)
-        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder, exist_ok=True)
+            
+        filepath = os.path.join(upload_folder, filename)
         file.save(filepath)
 
         app = current_app._get_current_object()
@@ -178,8 +187,6 @@ def upload_file():
 
         return render_template("admin/upload_progress.html")
 
-    # === Inject list of available months for Flatpickr ===
-    # Pass uploaded months for client-side warning
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("SELECT DISTINCT month FROM tweets")
@@ -188,7 +195,6 @@ def upload_file():
     conn.close()
 
     return render_template("admin/upload.html", existing_months=existing_months)
-
 
 @admin_bp.route("/register_csv", methods=["GET", "POST"])
 def register_csv():
@@ -203,7 +209,7 @@ def register_csv():
     if request.method == "POST":
         file = request.files.get("csv_file")
         if not file or not file.filename.endswith(".csv"):
-            flash("Please upload a valid CSV file with 'email' and 'role' columns.", "danger")
+            flash("Please upload a valid CSV file.", "danger")
             return redirect(request.url)
 
         df = pd.read_csv(file)
@@ -218,9 +224,8 @@ def register_csv():
             email = str(row['email']).strip().lower()
             role_code = str(row['role']).strip()
 
-            # Enforce role upload restriction
             if not is_main_admin and role_code != '2':
-                skipped_users.append({"email": email, "reason": "Only main admin can upload role 1 (admin)"})
+                skipped_users.append({"email": email, "reason": "Restricted to policymaker roles only"})
                 continue
 
             if role_code == '1':
@@ -242,7 +247,7 @@ def register_csv():
                 WHERE email = %s
             """, (email,))
             if cursor.fetchone():
-                skipped_users.append({"email": email, "reason": "Already exists in system"})
+                skipped_users.append({"email": email, "reason": "Account already exists"})
                 continue
 
             temp_pw = generate_temp_password()
@@ -257,9 +262,9 @@ def register_csv():
         conn.close()
 
         if created_users:
-            flash(f"✅ {len(created_users)} user(s) created successfully.", "success")
+            flash(f"✅ {len(created_users)} user(s) created.", "success")
         if skipped_users:
-            flash(f"⚠️ {len(skipped_users)} user(s) skipped due to duplication or restriction.", "warning")
+            flash(f"⚠️ {len(skipped_users)} user(s) skipped.", "warning")
 
     return render_template("admin/register_csv.html", created_users=created_users, skipped_users=skipped_users)
 
@@ -292,7 +297,6 @@ def update_user():
         return jsonify({"error": "Unauthorized"})
 
     is_main_admin = session.get("is_main_admin", False)
-
     original_email = request.form.get("original_email")
     original_role = request.form.get("original_role")
     new_email = request.form.get("new_email").strip().lower()
@@ -302,9 +306,8 @@ def update_user():
     if not all([original_email, original_role, new_email, new_role, admin_password]):
         return jsonify({"error": "Missing fields"})
 
-    # Restriction: Only main admin can edit admins
     if not is_main_admin and (original_role == "admin" or new_role == "admin"):
-        return jsonify({"error": "You are not allowed to modify admin users."})
+        return jsonify({"error": "Restricted: You cannot modify admin users."})
 
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
@@ -314,22 +317,16 @@ def update_user():
     if not admin or admin["admin_pwrd"] != admin_password:
         return jsonify({"error": "Invalid admin password"}), 401
 
-    # Check for duplicate email
     if new_email != original_email:
         cursor.execute("SELECT admin_email FROM admin WHERE admin_email = %s", (new_email,))
         if cursor.fetchone():
-            return jsonify({"error": f"Email '{new_email}' already exists in admin list."})
-        cursor.execute("SELECT pm_email FROM policymaker WHERE pm_email = %s", (new_email,))
-        if cursor.fetchone():
-            return jsonify({"error": f"Email '{new_email}' already exists in policymaker list."})
+            return jsonify({"error": "Email already exists."})
 
-    # Delete old user
     if original_role == "admin":
         cursor.execute("DELETE FROM admin WHERE admin_email = %s", (original_email,))
     else:
         cursor.execute("DELETE FROM policymaker WHERE pm_email = %s", (original_email,))
 
-    # Insert new user
     if new_role == "admin":
         cursor.execute("INSERT INTO admin (admin_email, temp_pwrd, first_login) VALUES (%s, NULL, FALSE)", (new_email,))
     else:
@@ -347,7 +344,6 @@ def delete_user():
         return jsonify({"error": "Unauthorized"}), 403
 
     is_main_admin = session.get("is_main_admin", False)
-
     data = request.get_json()
     emails = data.get("emails", [])
     roles = data.get("roles", [])
@@ -359,11 +355,10 @@ def delete_user():
     result = cursor.fetchone()
 
     if not result or result["admin_pwrd"] != password:
-        return jsonify({"error": "Invalid admin password"}), 401
+        return jsonify({"error": "Invalid password"}), 401
 
     deleted, skipped = [], []
     for email, role in zip(emails, roles):
-        # Restriction: normal admins cannot delete admin accounts
         if not is_main_admin and role == "admin":
             skipped.append(email)
             continue
@@ -379,4 +374,3 @@ def delete_user():
     conn.close()
 
     return jsonify({"deleted": deleted, "skipped": skipped})
-

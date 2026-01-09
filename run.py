@@ -17,7 +17,7 @@ app.config['MYSQL_PASSWORD'] = ''
 app.config['MYSQL_DB'] = 'myhatedetect'
 
 # Upload folder
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "upload_results"
 ALLOWED_EXTENSIONS = {'csv'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
